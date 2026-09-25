@@ -1,40 +1,67 @@
 import Link from 'next/link'
-import { backendApi } from '@/lib/backend-api'
-import { MONTHLY_AMOUNT_RUPEES } from '@/lib/billing'
+import { backendApi, type SubscriptionFilter } from '@/lib/backend-api'
+import { formatDate, formatRupees } from '@/lib/billing'
+import { AutopayBadge, FilterTabs, Pagination, SearchBox, StatCard, SubscriptionBadge, userLabel } from '@/components/ui'
 
-const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: 'bg-emerald-100 text-emerald-700',
-  AUTHENTICATED: 'bg-sky-100 text-sky-700',
-  PENDING: 'bg-amber-100 text-amber-700',
-  CREATED: 'bg-slate-100 text-slate-600',
-  HALTED: 'bg-orange-100 text-orange-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-  COMPLETED: 'bg-slate-100 text-slate-600',
-  EXPIRED: 'bg-red-100 text-red-700',
-}
+const FILTERS: SubscriptionFilter[] = ['all', 'autopay', 'issues', 'ended', 'incomplete']
 
-export default async function SubscriptionsPage() {
-  const subscriptions = await backendApi.subscriptions()
+export default async function SubscriptionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; page?: string; filter?: string }>
+}) {
+  const { q, page: pageParam, filter: filterParam } = await searchParams
+  const filter = FILTERS.includes(filterParam as SubscriptionFilter) ? (filterParam as SubscriptionFilter) : 'all'
+  const page = Math.max(1, Number(pageParam) || 1)
 
-  const activeCount = subscriptions.filter((s) => s.status === 'ACTIVE').length
-  const mrr = activeCount * MONTHLY_AMOUNT_RUPEES
+  const [{ subscriptions, total, pageSize }, stats] = await Promise.all([
+    backendApi.subscriptions({ q, page, filter }),
+    backendApi.stats(),
+  ])
+  const subs = stats.subscriptions
+  const allCount = Object.values(subs.byStatus).reduce((a, b) => a + b, 0)
+  const filterParams = { q, filter: filter === 'all' ? undefined : filter }
 
   return (
-    <div>
+    <div className="max-w-6xl">
       <h1 className="text-2xl font-bold text-slate-900">Subscriptions</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        {activeCount} active · ₹{mrr.toLocaleString('en-IN')} MRR
-      </p>
+      <p className="mt-1 text-sm text-slate-500">Everyone who has started a subscription, with their autopay state.</p>
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Autopay active" value={subs.autopayOn} tone="good" />
+        <StatCard label="MRR" value={formatRupees(stats.revenue.mrrPaise)} />
+        <StatCard label="Renewing in 7 days" value={subs.renewalsNext7Days} />
+        <StatCard label="Payment issues" value={subs.paymentIssues} tone={subs.paymentIssues > 0 ? 'warn' : 'default'} />
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <FilterTabs
+          basePath="/subscriptions"
+          current={filter}
+          params={{ q }}
+          options={[
+            { value: 'all', label: 'All', count: allCount },
+            { value: 'autopay', label: 'Autopay on', count: subs.autopayOn },
+            { value: 'issues', label: 'Payment issues', count: subs.paymentIssues },
+            { value: 'ended', label: 'Cancelled / ended', count: subs.ended },
+            { value: 'incomplete', label: 'Abandoned', count: subs.byStatus.CREATED ?? 0 },
+          ]}
+        />
+        <SearchBox defaultValue={q} placeholder="Name, phone, username, sub ID…" hidden={{ filter: filterParams.filter }} />
+      </div>
+
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-4 py-3">User</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Current period</th>
-              <th className="px-4 py-3">Razorpay ID</th>
-              <th className="px-4 py-3">Updated</th>
+              <th className="px-4 py-3">Autopay</th>
+              <th className="px-4 py-3">Next charge</th>
+              <th className="px-4 py-3 text-right">Months paid</th>
+              <th className="px-4 py-3 text-right">Total paid</th>
+              <th className="px-4 py-3">Subscribed</th>
+              <th className="px-4 py-3">Cancelled</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -42,33 +69,35 @@ export default async function SubscriptionsPage() {
               <tr key={sub.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
                   <Link href={`/users/${sub.user.id}`} className="font-medium text-indigo-600 hover:underline">
-                    {sub.user.name ?? sub.user.phone ?? sub.user.username ?? sub.user.id}
+                    {userLabel(sub.user)}
                   </Link>
+                  {sub.user.phone && sub.user.name && <p className="text-xs text-slate-400">{sub.user.phone}</p>}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[sub.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                    {sub.status}
-                  </span>
+                  <SubscriptionBadge status={sub.status} />
                 </td>
-                <td className="px-4 py-3 text-slate-500">
-                  {sub.currentStart && sub.currentEnd
-                    ? `${new Date(sub.currentStart).toLocaleDateString('en-IN')} – ${new Date(sub.currentEnd).toLocaleDateString('en-IN')}`
-                    : '—'}
+                <td className="px-4 py-3">
+                  <AutopayBadge on={sub.autopayOn} />
                 </td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-400">{sub.razorpaySubscriptionId}</td>
-                <td className="px-4 py-3 text-slate-500">{new Date(sub.updatedAt).toLocaleDateString('en-IN')}</td>
+                <td className="px-4 py-3 text-slate-600">{sub.autopayOn ? formatDate(sub.chargeAt) : '—'}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-slate-600">{sub.paidCount}</td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums text-slate-900">{formatRupees(sub.totalPaidPaise)}</td>
+                <td className="px-4 py-3 text-slate-500">{formatDate(sub.activatedAt)}</td>
+                <td className="px-4 py-3 text-slate-500">{formatDate(sub.cancelledAt)}</td>
               </tr>
             ))}
             {subscriptions.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                  No subscriptions yet.
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                  No subscriptions match.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <Pagination basePath="/subscriptions" page={page} total={total} pageSize={pageSize} params={filterParams} />
     </div>
   )
 }

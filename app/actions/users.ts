@@ -16,6 +16,15 @@ export async function setTestUser(userId: string, isTestUser: boolean): Promise<
 // paid subscription: cancelling from /paywall on the app only touches the
 // Subscription row, so an override survives that, and this is the one place
 // that can flip isPremium without a real Razorpay payment behind it.
+// Stops the user's Razorpay autopay immediately and revokes paid access.
+export async function cancelAutopay(userId: string, subscriptionId: string): Promise<void> {
+  await verifyAdminSession()
+  await backendApi.cancelSubscription(subscriptionId)
+  revalidatePath('/subscriptions')
+  revalidatePath('/users')
+  revalidatePath(`/users/${userId}`)
+}
+
 export async function setPremiumOverride(userId: string, isPremium: boolean): Promise<void> {
   await verifyAdminSession()
   await backendApi.updateUser(userId, { isPremium })

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,15 +18,18 @@ export const metadata: Metadata = {
   description: "Back office for Radiance — users, subscriptions, questions, categories.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Set by components/theme-toggle.tsx; rendered server-side so there is no light flash.
+  const dark = (await cookies()).get("theme")?.value === "dark";
+
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased${dark ? " dark" : ""}`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

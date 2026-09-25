@@ -10,7 +10,10 @@ async function main() {
     process.exit(1);
   }
   const hash = await bcrypt.hash(password, 12);
-  console.log(`ADMIN_PASSWORD_HASH="${hash}"`);
+  // Next.js expands $VAR inside .env files, so every literal $ in the hash
+  // must be escaped as \$ or the loaded value gets silently mangled.
+  const escaped = hash.replace(/\$/g, '\\$');
+  console.log(`ADMIN_PASSWORD_HASH="${escaped}"`);
 }
 
 main();

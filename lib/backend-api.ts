@@ -14,18 +14,33 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
   const apiKey = process.env.ADMIN_API_KEY
   if (!apiKey) throw new Error('ADMIN_API_KEY is not set')
 
-  const response = await fetch(`${BACKEND_URL}${path}`, {
-    method: options.method ?? 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-admin-api-key': apiKey,
-    },
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    cache: 'no-store',
-  })
+  let response: Response
+  try {
+    response = await fetch(`${BACKEND_URL}${path}`, {
+      method: options.method ?? 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-api-key': apiKey,
+      },
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      cache: 'no-store',
+      // A redirect means we hit a web app (e.g. this admin's own /login), not the API.
+      redirect: 'manual',
+    })
+  } catch {
+    throw new BackendApiError(503, `Cannot reach radiance-backend at ${BACKEND_URL} — is it running?`)
+  }
 
   const text = await response.text()
-  const data = text ? JSON.parse(text) : null
+  let data
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    throw new BackendApiError(
+      502,
+      `${BACKEND_URL}${path} did not return JSON (HTTP ${response.status}) — check BACKEND_URL points at radiance-backend, not this admin app`
+    )
+  }
 
   if (!response.ok) {
     throw new BackendApiError(response.status, data?.error ?? 'Request to backend failed')
@@ -36,12 +51,47 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
 // ─── Types (mirrors radiance-backend/app/api/admin/* response shapes) ────
 
 export type AdminStats = {
-  totalUsers: number
-  testUsers: number
-  activeSubscriptions: number
-  stagesCompletedToday: number
-  draftsNeedingReview: number
-  liveQuestions: number
+  planAmountPaise: number
+  freeStageLimit: number
+  users: {
+    total: number
+    test: number
+    premium: number
+    comp: number
+    free: number
+    newToday: number
+    newThisMonth: number
+    hitFreeLimitNotSubscribed: number
+  }
+  subscriptions: {
+    byStatus: Record<string, number>
+    autopayOn: number
+    paymentIssues: number
+    ended: number
+    everSubscribed: number
+    newThisMonth: number
+    cancelledThisMonth: number
+    renewalsNext7Days: number
+    conversionRate: number
+  }
+  revenue: {
+    mrrPaise: number
+    totalPaise: number
+    totalPayments: number
+    thisMonthPaise: number
+    thisMonthPayments: number
+    monthly: { month: string; amountPaise: number; payments: number }[]
+  }
+  usage: {
+    activeUsersToday: number
+    activeUsers7d: number
+    stagesCompletedToday: number
+    quizAttemptsToday: number
+  }
+  content: {
+    draftsNeedingReview: number
+    liveQuestions: number
+  }
 }
 
 export type AdminUserListItem = {
@@ -53,30 +103,67 @@ export type AdminUserListItem = {
   isTestUser: boolean
   isPremium: boolean
   createdAt: string
+  subscription?: { status: string } | null
 }
 
 export type AdminUserList = { users: AdminUserListItem[]; total: number; page: number; pageSize: number }
 
-export type AdminUserDetail = AdminUserListItem & {
+export type AdminPayment = {
+  id: string
+  razorpayPaymentId: string
+  amountPaise: number
+  currency: string
+  status: 'CAPTURED' | 'FAILED' | 'REFUNDED'
+  method: string | null
+  paidAt: string
+}
+
+export type AdminUserDetail = Omit<AdminUserListItem, 'subscription'> & {
   state: string | null
   completedStages: number
   quizAttempts: number
+  freeStageLimit: number
   subscription: {
+    id: string
     status: string
     razorpaySubscriptionId: string
     currentStart: string | null
     currentEnd: string | null
+    chargeAt: string | null
+    paidCount: number
+    activatedAt: string | null
+    cancelledAt: string | null
   } | null
+  payments: AdminPayment[]
 }
+
+export type SubscriptionFilter = 'all' | 'autopay' | 'issues' | 'ended' | 'incomplete'
 
 export type AdminSubscription = {
   id: string
   status: string
+  autopayOn: boolean
   razorpaySubscriptionId: string
   currentStart: string | null
   currentEnd: string | null
+  chargeAt: string | null
+  paidCount: number
+  activatedAt: string | null
+  cancelledAt: string | null
+  totalPaidPaise: number
+  lastPaidAt: string | null
   updatedAt: string
   user: { id: string; name: string | null; phone: string | null; username: string | null }
+}
+
+export type AdminSubscriptionList = { subscriptions: AdminSubscription[]; total: number; page: number; pageSize: number }
+
+export type AdminPaymentList = {
+  payments: (AdminPayment & { user: AdminSubscription['user'] })[]
+  total: number
+  page: number
+  pageSize: number
+  totalCapturedPaise: number
 }
 
 export type AdminPaper = {
@@ -132,14 +219,23 @@ export type AdminStage = {
 
 export type AdminCategoryDetail = AdminCategory & { stages: AdminStage[] }
 
+function toQuery(params: Record<string, string | number | undefined>): string {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') search.set(key, String(value))
+  }
+  return search.toString()
+}
+
 // ─── Calls ────────────────────────────────────────────────────────────
 
 export const backendApi = {
   stats: () => request<AdminStats>('/api/admin/stats'),
 
-  users: (params: { q?: string; page?: number }) => {
+  users: (params: { q?: string; page?: number; filter?: string }) => {
     const search = new URLSearchParams()
     if (params.q) search.set('q', params.q)
+    if (params.filter) search.set('filter', params.filter)
     if (params.page) search.set('page', String(params.page))
     return request<AdminUserList>(`/api/admin/users?${search}`)
   },
@@ -149,7 +245,13 @@ export const backendApi = {
   updateUser: (id: string, data: { isTestUser?: boolean; isPremium?: boolean }) =>
     request(`/api/admin/users/${id}`, { method: 'PATCH', body: data }),
 
-  subscriptions: () => request<AdminSubscription[]>('/api/admin/subscriptions'),
+  subscriptions: (params: { q?: string; page?: number; filter?: SubscriptionFilter }) =>
+    request<AdminSubscriptionList>('/api/admin/subscriptions?' + toQuery(params)),
+
+  cancelSubscription: (id: string) => request(`/api/admin/subscriptions/${id}/cancel`, { method: 'POST' }),
+
+  payments: (params: { q?: string; page?: number }) =>
+    request<AdminPaymentList>('/api/admin/payments?' + toQuery(params)),
 
   papers: () => request<AdminPaper[]>('/api/admin/papers'),
 

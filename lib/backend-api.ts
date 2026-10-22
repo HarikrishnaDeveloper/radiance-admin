@@ -315,6 +315,38 @@ function toQuery(params: Record<string, string | number | undefined>): string {
   return search.toString()
 }
 
+export type FreezeMonth = {
+  month: string // "YYYY-MM"
+  freeUsed: number
+  paidUsed: number
+  attempts: number
+  sold: number
+  restores: number
+  revenuePaise: number
+}
+
+export type AdminStreakFreezes = {
+  rules: { freePerMonth: number; pricePaise: number; maxPaid: number }
+  thisMonth: FreezeMonth
+  allTime: { freeUsed: number; paidUsed: number; sold: number; revenuePaise: number; purchaseAttempts: number; restores: number }
+  students: { outOfFreeThisMonth: number; holdingPaid: number; paidFreezesHeld: number }
+  months: FreezeMonth[]
+  total: number
+  page: number
+  pageSize: number
+  purchases: {
+    id: string
+    createdAt: string
+    paidAt: string | null
+    status: 'CREATED' | 'PAID' | 'FAILED'
+    quantity: number
+    amountPaise: number
+    forRestore: boolean
+    razorpayPaymentId: string | null
+    user: AdminSubscription['user'] & { isTestUser: boolean }
+  }[]
+}
+
 // ─── Calls ────────────────────────────────────────────────────────────
 
 export const backendApi = {
@@ -345,6 +377,12 @@ export const backendApi = {
 
   payments: (params: { q?: string; page?: number }) =>
     request<AdminPaymentList>('/api/admin/payments?' + toQuery(params)),
+
+  streakFreezes: (params: { page?: number }) =>
+    request<AdminStreakFreezes>('/api/admin/streak-freezes?' + toQuery(params)),
+
+  updateStreakFreezeSettings: (data: Partial<AdminStreakFreezes['rules']>) =>
+    request<AdminStreakFreezes['rules']>('/api/admin/streak-freezes/settings', { method: 'PATCH', body: data }),
 
   papers: () => request<AdminPaper[]>('/api/admin/papers'),
 

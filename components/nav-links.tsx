@@ -21,6 +21,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { href: '/subscriptions', label: 'Subscriptions', icon: 'repeat' },
       { href: '/payments', label: 'Payments', icon: 'card' },
+      { href: '/streak-freezes', label: 'Streak freezes', icon: 'snowflake' },
     ],
   },
   {

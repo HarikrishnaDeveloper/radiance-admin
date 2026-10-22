@@ -46,6 +46,7 @@ export default async function UsersPage({
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Phone / Username</th>
+              <th className="px-4 py-3">Profile</th>
               <th className="px-4 py-3">Access</th>
               <th className="px-4 py-3">Subscription</th>
               <th className="px-4 py-3">Joined</th>
@@ -60,6 +61,17 @@ export default async function UsersPage({
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{user.phone ?? user.username ?? '—'}</td>
+                <td className="px-4 py-3">
+                  {user.profileCompleted ? (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                      Completed
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                      Pending
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1.5">
                     {user.isTestUser && (

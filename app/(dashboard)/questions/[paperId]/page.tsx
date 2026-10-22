@@ -111,6 +111,36 @@ export default async function PaperReviewPage({ params }: { params: Promise<{ pa
                 Save
               </button>
             </div>
+
+            {/* ── Explanation & UPSC Revision Point ── */}
+            <div className="mt-4 border-t border-slate-100 pt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-indigo-700 mb-1">
+                  Explanation
+                  <span className="ml-1 font-normal text-slate-400">(shown after answer is revealed)</span>
+                </label>
+                <textarea
+                  name="explanation"
+                  defaultValue={draft.explanation ?? ''}
+                  rows={3}
+                  placeholder="Write a clear explanation of why the correct answer is right…"
+                  className="w-full rounded-lg border border-slate-200 p-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-amber-700 mb-1">
+                  🔖 UPSC Revision Point
+                  <span className="ml-1 font-normal text-slate-400">(key fact students should remember)</span>
+                </label>
+                <textarea
+                  name="revisionPoints"
+                  defaultValue={draft.revisionPoints ?? ''}
+                  rows={2}
+                  placeholder="Concise memory hook or key fact for UPSC revision…"
+                  className="w-full rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                />
+              </div>
+            </div>
           </form>
         ))}
         {drafts.length === 0 && <p className="text-sm text-slate-400">No draft questions for this paper.</p>}

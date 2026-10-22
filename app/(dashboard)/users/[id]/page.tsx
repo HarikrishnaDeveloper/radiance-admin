@@ -55,6 +55,28 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             <InfoRow label="Username" value={user.username ?? '—'} />
             <InfoRow label="Email" value={user.email ?? '—'} />
             <InfoRow label="State" value={user.state ?? '—'} />
+            <InfoRow
+              label="Profile Status"
+              value={
+                user.profileCompleted ? (
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                    Completed
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                    Pending
+                  </span>
+                )
+              }
+            />
+            {user.profile && (
+              <>
+                <InfoRow label="Target Exam" value={user.profile.targetExam} />
+                <InfoRow label="Prep Level" value={user.profile.preparationLevel} />
+                <InfoRow label="Target Attempt" value={user.profile.targetAttempt ?? 'Not decided'} />
+                <InfoRow label="Focus" value={user.profile.preparationFocus} />
+              </>
+            )}
             <InfoRow label="Joined" value={formatDate(user.createdAt)} />
             <InfoRow label="Stages completed" value={user.completedStages} />
             <InfoRow label="Quiz attempts" value={user.quizAttempts} />

@@ -16,6 +16,8 @@ export async function updateDraftQuestion(paperId: number, draftId: number, form
     correctAnswer: String(formData.get('correctAnswer') ?? '').trim().toUpperCase() || undefined,
     categoryId: formData.get('categoryId') ? Number(formData.get('categoryId')) : undefined,
     status: String(formData.get('status') ?? 'NEEDS_REVIEW'),
+    explanation: String(formData.get('explanation') ?? '').trim() || undefined,
+    revisionPoints: String(formData.get('revisionPoints') ?? '').trim() || undefined,
   })
 
   revalidatePath(`/questions/${paperId}`)

@@ -94,6 +94,14 @@ export type AdminStats = {
   }
 }
 
+export type UserProfileSummary = {
+  fullName: string
+  targetExam: string
+  preparationLevel: string
+  targetAttempt: string | null
+  preparationFocus: string
+}
+
 export type AdminUserListItem = {
   id: string
   username: string | null
@@ -103,6 +111,8 @@ export type AdminUserListItem = {
   isTestUser: boolean
   isPremium: boolean
   createdAt: string
+  profileCompleted?: boolean
+  profile?: UserProfileSummary | null
   subscription?: { status: string } | null
 }
 
@@ -123,6 +133,8 @@ export type AdminUserDetail = Omit<AdminUserListItem, 'subscription'> & {
   completedStages: number
   quizAttempts: number
   freeStageLimit: number
+  profileCompleted?: boolean
+  profile?: UserProfileSummary | null
   subscription: {
     id: string
     status: string
@@ -186,6 +198,8 @@ export type AdminDraftQuestion = {
   correctAnswer: string | null
   categoryId: number | null
   status: string
+  explanation: string | null
+  revisionPoints: string | null
 }
 
 export type AdminPaperDrafts = {

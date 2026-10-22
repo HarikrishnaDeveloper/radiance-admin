@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { BackendApiError, backendApi } from '@/lib/backend-api'
 import { toggleStagePublished, updateCategory } from '@/app/actions/categories'
+import { ActionForm, SubmitButton } from '@/components/action-form'
 
 export default async function CategoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: idParam } = await params
@@ -22,32 +23,41 @@ export default async function CategoryDetailPage({ params }: { params: Promise<{
       </Link>
       <h1 className="mt-2 text-2xl font-bold text-slate-900">{category.name}</h1>
 
-      <form action={updateCategory.bind(null, categoryId)} className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+      <ActionForm
+        action={updateCategory.bind(null, categoryId)}
+        successTitle="Category saved"
+        errorTitle="Couldn’t save the category"
+        className="card mt-6 p-5"
+      >
         <h2 className="text-sm font-semibold text-slate-900">Presentation</h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="text-xs font-medium text-slate-500">
+          <label className="col-span-2 field-label">
+            Name
+            <input name="name" required defaultValue={category.name} className="field" />
+          </label>
+          <label className="field-label">
             Display name (food-world)
             <input
               name="foodWorldName"
               defaultValue={category.foodWorldName ?? ''}
-              className="mt-1 block w-full rounded-lg border border-slate-200 p-2 text-sm"
+              className="field"
             />
           </label>
-          <label className="text-xs font-medium text-slate-500">
+          <label className="field-label">
             Icon
-            <input name="icon" defaultValue={category.icon ?? ''} className="mt-1 block w-full rounded-lg border border-slate-200 p-2 text-sm" />
+            <input name="icon" defaultValue={category.icon ?? ''} className="field" />
           </label>
-          <label className="text-xs font-medium text-slate-500">
+          <label className="field-label">
             Color
-            <input name="color" defaultValue={category.color ?? ''} className="mt-1 block w-full rounded-lg border border-slate-200 p-2 text-sm" />
+            <input name="color" defaultValue={category.color ?? ''} className="field" />
           </label>
-          <label className="text-xs font-medium text-slate-500">
+          <label className="field-label">
             Display order
             <input
               type="number"
               name="displayOrder"
               defaultValue={category.displayOrder}
-              className="mt-1 block w-full rounded-lg border border-slate-200 p-2 text-sm"
+              className="field"
             />
           </label>
         </div>
@@ -55,12 +65,12 @@ export default async function CategoryDetailPage({ params }: { params: Promise<{
           <input type="checkbox" name="isActive" defaultChecked={category.isActive} className="rounded border-slate-300" />
           Active (visible in the app)
         </label>
-        <button type="submit" className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
-          Save
-        </button>
-      </form>
+        <div className="mt-4">
+          <SubmitButton pendingLabel="Saving…">Save changes</SubmitButton>
+        </div>
+      </ActionForm>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="card mt-6 p-5">
         <h2 className="text-sm font-semibold text-slate-900">Stages</h2>
         <div className="mt-3 divide-y divide-slate-100">
           {category.stages.map((stage) => (
@@ -71,16 +81,19 @@ export default async function CategoryDetailPage({ params }: { params: Promise<{
                 </span>
                 <span className="ml-2 text-xs text-slate-400">{stage.questionCount} questions · {stage.rewardStars}★</span>
               </div>
-              <form action={toggleStagePublished.bind(null, categoryId, stage.id, !stage.isPublished)}>
-                <button
-                  type="submit"
+              <ActionForm
+                action={toggleStagePublished.bind(null, categoryId, stage.id, !stage.isPublished)}
+                successTitle={stage.isPublished ? "Stage unpublished" : "Stage published"}
+                errorTitle="Couldn’t update the stage"
+              >
+                <SubmitButton
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
                     stage.isPublished ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                   }`}
                 >
-                  {stage.isPublished ? 'Published' : 'Unpublished'}
-                </button>
-              </form>
+                  {stage.isPublished ? "Published" : "Unpublished"}
+                </SubmitButton>
+              </ActionForm>
             </div>
           ))}
           {category.stages.length === 0 && <p className="py-4 text-sm text-slate-400">No stages built yet for this category.</p>}

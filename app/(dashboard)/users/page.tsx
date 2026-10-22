@@ -40,7 +40,7 @@ export default async function UsersPage({
         <SearchBox defaultValue={q} placeholder="Search name, phone, email, username…" hidden={{ filter: filterParams.filter }} />
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+      <div className="mt-4 overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
@@ -56,7 +56,7 @@ export default async function UsersPage({
             {users.map((user) => (
               <tr key={user.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
-                  <Link href={`/users/${user.id}`} className="font-medium text-indigo-600 hover:underline">
+                  <Link href={`/users/${user.id}`} className="font-medium text-[#7b0f91] hover:underline dark:text-[#c77dd8]">
                     {user.name ?? '—'}
                   </Link>
                 </td>

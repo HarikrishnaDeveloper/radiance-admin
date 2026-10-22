@@ -120,3 +120,70 @@ body {
   --color-indigo-900:  oklch(93% 0.034 272.788);
   --color-indigo-950:  oklch(96.2% 0.018 272.314);
 }
+
+/* ─── Brand components ─────────────────────────────────────────────────
+   Shared building blocks for the signed-in area, matching the login page's
+   purple gradient. Colors that must stay fixed in dark mode use literals:
+   inside .themed, `white`/`slate-*` are remapped (see Theme above). */
+:root {
+  --brand-from: #5b0f8a;
+  --brand-to: #8e0a9a;
+  --brand: #7b0f91;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-primary {
+    @apply shadow-sm hover:brightness-110;
+    color: #fff;
+    background-image: linear-gradient(to right, var(--brand-from), var(--brand-to));
+  }
+  .btn-secondary {
+    @apply border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply bg-red-600 shadow-sm hover:bg-red-700;
+    color: #fff;
+  }
+  .btn-success {
+    @apply bg-emerald-600 shadow-sm hover:bg-emerald-700;
+    color: #fff;
+  }
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+  .field {
+    @apply mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition focus:outline-none focus:ring-2;
+    --tw-ring-color: color-mix(in oklab, var(--brand) 35%, transparent);
+  }
+  .field:focus {
+    border-color: var(--brand);
+  }
+  .field-label {
+    @apply text-xs font-medium text-slate-500;
+  }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.animate-toast-in { animation: toast-in 180ms ease-out; }
+.animate-overlay-in { animation: overlay-in 150ms ease-out; }
+.animate-dialog-in { animation: dialog-in 180ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-toast-in, .animate-overlay-in, .animate-dialog-in { animation: none; }
+}

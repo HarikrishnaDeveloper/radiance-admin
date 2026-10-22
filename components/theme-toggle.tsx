@@ -18,7 +18,7 @@ export function ThemeToggle({ initial }: { initial: Theme }) {
   }
 
   return (
-    <div role="radiogroup" aria-label="Theme" className="flex rounded-lg bg-slate-100 p-1">
+    <div role="radiogroup" aria-label="Theme" className="flex rounded-lg bg-[#fff]/10 p-1">
       {(['light', 'dark'] as const).map((option) => {
         const active = theme === option
         return (
@@ -29,7 +29,7 @@ export function ThemeToggle({ initial }: { initial: Theme }) {
             aria-checked={active}
             onClick={() => choose(option)}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition ${
-              active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              active ? 'bg-[#fff] text-[#5b0f8a] shadow-sm' : 'text-[#fff]/70 hover:text-[#fff]'
             }`}
           >
             {option === 'light' ? <SunIcon /> : <MoonIcon />}

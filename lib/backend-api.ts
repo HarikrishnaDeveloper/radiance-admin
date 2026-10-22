@@ -10,7 +10,10 @@ export class BackendApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  options: { method?: string; body?: unknown; form?: FormData } = {}
+): Promise<T> {
   const apiKey = process.env.ADMIN_API_KEY
   if (!apiKey) throw new Error('ADMIN_API_KEY is not set')
 
@@ -18,11 +21,11 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
   try {
     response = await fetch(`${BACKEND_URL}${path}`, {
       method: options.method ?? 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-api-key': apiKey,
-      },
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      // A multipart body sets its own Content-Type (with the boundary).
+      headers: options.form
+        ? { 'x-admin-api-key': apiKey }
+        : { 'Content-Type': 'application/json', 'x-admin-api-key': apiKey },
+      body: options.form ?? (options.body !== undefined ? JSON.stringify(options.body) : undefined),
       cache: 'no-store',
       // A redirect means we hit a web app (e.g. this admin's own /login), not the API.
       redirect: 'manual',
@@ -43,7 +46,13 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
   }
 
   if (!response.ok) {
-    throw new BackendApiError(response.status, data?.error ?? 'Request to backend failed')
+    throw new BackendApiError(
+      response.status,
+      data?.error ??
+        (response.status >= 500
+          ? `The server ran into a problem (HTTP ${response.status}). Please try again in a moment.`
+          : `The request was rejected (HTTP ${response.status}).`)
+    )
   }
   return data as T
 }
@@ -195,6 +204,12 @@ export type AdminDraftQuestion = {
   optionB: string | null
   optionC: string | null
   optionD: string | null
+  // Paths on radiance-backend (e.g. /uploads/<uuid>.png); see backendFileUrl.
+  questionImage: string | null
+  optionAImage: string | null
+  optionBImage: string | null
+  optionCImage: string | null
+  optionDImage: string | null
   correctAnswer: string | null
   categoryId: number | null
   status: string
@@ -269,21 +284,36 @@ export const backendApi = {
 
   papers: () => request<AdminPaper[]>('/api/admin/papers'),
 
+  createPaper: (data: { year: number; name: string; set?: string }) =>
+    request<{ id: number }>('/api/admin/papers', { method: 'POST', body: data }),
+
   paperDrafts: (paperId: number) => request<AdminPaperDrafts>(`/api/admin/papers/${paperId}/drafts`),
+
+  addDraft: (paperId: number) =>
+    request<{ id: number; questionNo: number }>(`/api/admin/papers/${paperId}/drafts`, { method: 'POST' }),
 
   updateDraft: (draftId: number, data: Partial<AdminDraftQuestion>) =>
     request(`/api/admin/drafts/${draftId}`, { method: 'PATCH', body: data }),
 
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const form = new FormData()
+    form.append('file', file)
+    return request<{ url: string }>('/api/admin/uploads', { method: 'POST', form })
+  },
+
   promotePaper: (paperId: number) =>
-    request<{ promoted: number; total: number; skipped: number[] }>(`/api/admin/papers/${paperId}/promote`, {
+    request<{ promoted: number; total: number; skipped: number[]; retained?: number[] }>(`/api/admin/papers/${paperId}/promote`, {
       method: 'POST',
     }),
 
   categories: () => request<AdminCategory[]>('/api/admin/categories'),
 
+  createCategory: (data: { name: string; foodWorldName?: string }) =>
+    request<{ id: number }>('/api/admin/categories', { method: 'POST', body: data }),
+
   category: (id: number) => request<AdminCategoryDetail>(`/api/admin/categories/${id}`),
 
-  updateCategory: (id: number, data: Partial<Pick<AdminCategory, 'foodWorldName' | 'icon' | 'color' | 'displayOrder' | 'isActive'>>) =>
+  updateCategory: (id: number, data: Partial<Pick<AdminCategory, 'name' | 'foodWorldName' | 'icon' | 'color' | 'displayOrder' | 'isActive'>>) =>
     request(`/api/admin/categories/${id}`, { method: 'PATCH', body: data }),
 
   updateStage: (id: number, data: Partial<Pick<AdminStage, 'title' | 'rewardStars' | 'isPublished'>>) =>

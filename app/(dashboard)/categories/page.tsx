@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { backendApi } from '@/lib/backend-api'
+import { NewCategoryForm } from '@/components/create-forms'
 
 export default async function CategoriesPage() {
   const categories = await backendApi.categories()
@@ -9,7 +10,9 @@ export default async function CategoriesPage() {
       <h1 className="text-2xl font-bold text-slate-900">Categories</h1>
       <p className="mt-1 text-sm text-slate-500">Subjects and their stage breakdown.</p>
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <NewCategoryForm />
+
+      <div className="mt-6 overflow-hidden card">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
@@ -37,7 +40,7 @@ export default async function CategoriesPage() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/categories/${category.id}`} className="text-sm font-medium text-indigo-600 hover:underline">
+                  <Link href={`/categories/${category.id}`} className="text-sm font-medium text-[#7b0f91] hover:underline dark:text-[#c77dd8]">
                     Manage →
                   </Link>
                 </td>

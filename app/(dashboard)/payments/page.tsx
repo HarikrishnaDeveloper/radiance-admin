@@ -27,7 +27,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         <SearchBox defaultValue={q} placeholder="Name, phone, payment ID…" />
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+      <div className="mt-6 overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
@@ -44,7 +44,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
               <tr key={p.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-slate-600">{new Date(p.paidAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                 <td className="px-4 py-3">
-                  <Link href={`/users/${p.user.id}`} className="font-medium text-indigo-600 hover:underline">
+                  <Link href={`/users/${p.user.id}`} className="font-medium text-[#7b0f91] hover:underline dark:text-[#c77dd8]">
                     {userLabel(p.user)}
                   </Link>
                 </td>

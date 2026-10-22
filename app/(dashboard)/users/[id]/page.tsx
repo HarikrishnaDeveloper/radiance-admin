@@ -4,7 +4,7 @@ import { BackendApiError, backendApi } from '@/lib/backend-api'
 import { AUTOPAY_ON_STATUSES, CANCELLABLE_STATUSES, formatDate, formatRupees } from '@/lib/billing'
 import { cancelAutopay, setPremiumOverride, setTestUser } from '@/app/actions/users'
 import { AutopayBadge, SubscriptionBadge } from '@/components/ui'
-import { ConfirmSubmit } from '@/components/confirm-submit'
+import { ActionForm, SubmitButton } from '@/components/action-form'
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -40,14 +40,14 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="max-w-5xl">
-      <Link href="/users" className="text-sm text-slate-500 hover:underline">
+      <Link href="/users" className="text-sm text-slate-500 hover:text-[#7b0f91]">
         ← Back to users
       </Link>
       <h1 className="mt-2 text-2xl font-bold text-slate-900">{user.name ?? 'Unnamed user'}</h1>
       <p className="mt-1 text-sm text-slate-500">{access}</p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="card p-5">
           <h2 className="text-sm font-semibold text-slate-900">Profile</h2>
           <div className="mt-3">
             <InfoRow label="User ID" value={<span className="font-mono text-xs">{user.id}</span>} />
@@ -83,7 +83,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="card p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Subscription & autopay</h2>
             {sub && <SubscriptionBadge status={sub.status} />}
@@ -102,14 +102,26 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               <InfoRow label="Cancelled on" value={formatDate(sub.cancelledAt)} />
               <InfoRow label="Razorpay ID" value={<span className="font-mono text-xs">{sub.razorpaySubscriptionId}</span>} />
               {CANCELLABLE_STATUSES.includes(sub.status) && (
-                <form action={cancelAutopay.bind(null, user.id, sub.id)} className="mt-4">
-                  <ConfirmSubmit
-                    message="Cancel this user's autopay in Razorpay? They lose premium access immediately and will not be charged again."
-                    className="w-full rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                <ActionForm
+                  action={cancelAutopay.bind(null, user.id, sub.id)}
+                  successTitle="Autopay cancelled"
+                  errorTitle="Couldn’t cancel autopay"
+                  confirm={{
+                    title: 'Cancel autopay?',
+                    message:
+                      'This stops the user’s Razorpay autopay. They lose premium access immediately and won’t be charged again.',
+                    confirmLabel: 'Cancel autopay',
+                    tone: 'danger',
+                  }}
+                  className="mt-4"
+                >
+                  <SubmitButton
+                    pendingLabel="Cancelling…"
+                    className="btn w-full border border-red-200 text-red-600 hover:bg-red-50"
                   >
                     Cancel autopay
-                  </ConfirmSubmit>
-                </form>
+                  </SubmitButton>
+                </ActionForm>
               )}
             </div>
           ) : (
@@ -118,7 +130,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white">
+      <div className="mt-6 card">
         <h2 className="px-5 pt-5 text-sm font-semibold text-slate-900">Payment history</h2>
         <table className="mt-3 w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -152,27 +164,38 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <form action={setTestUser.bind(null, user.id, !user.isTestUser)}>
-          <button
-            type="submit"
-            className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-              user.isTestUser ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-slate-900 text-white hover:bg-slate-700'
-            }`}
+        <ActionForm
+          action={setTestUser.bind(null, user.id, !user.isTestUser)}
+          successTitle="User updated"
+          errorTitle="Couldn’t update the user"
+        >
+          <SubmitButton
+            pendingLabel="Saving…"
+            className={`btn ${user.isTestUser ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'btn-secondary'}`}
           >
             {user.isTestUser ? 'Remove test-user flag' : 'Mark as test user'}
-          </button>
-        </form>
+          </SubmitButton>
+        </ActionForm>
 
-        <form action={setPremiumOverride.bind(null, user.id, !user.isPremium)}>
-          <button
-            type="submit"
-            className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-              user.isPremium ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-900 text-white hover:bg-slate-700'
-            }`}
-          >
+        <ActionForm
+          action={setPremiumOverride.bind(null, user.id, !user.isPremium)}
+          successTitle="Access updated"
+          errorTitle="Couldn’t change access"
+          confirm={
+            user.isPremium
+              ? {
+                  title: 'Revoke premium access?',
+                  message: 'The user drops back to the free plan straight away.',
+                  confirmLabel: 'Revoke access',
+                  tone: 'danger',
+                }
+              : undefined
+          }
+        >
+          <SubmitButton pendingLabel="Saving…" className={`btn ${user.isPremium ? 'btn-secondary text-red-600' : 'btn-primary'}`}>
             {user.isPremium ? 'Revoke premium access' : 'Grant premium access (comp)'}
-          </button>
-        </form>
+          </SubmitButton>
+        </ActionForm>
       </div>
       <p className="mt-2 text-xs text-slate-400">
         &quot;Grant premium access&quot; sets access directly and is independent of any real Razorpay subscription — use it for support cases.

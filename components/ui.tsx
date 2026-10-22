@@ -106,9 +106,9 @@ export function SearchBox({ defaultValue, placeholder, hidden = {} }: { defaultV
         name="q"
         defaultValue={defaultValue ?? ''}
         placeholder={placeholder}
-        className="w-72 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        className="field mt-0 w-72"
       />
-      <button type="submit" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+      <button type="submit" className="btn btn-primary">
         Search
       </button>
     </form>

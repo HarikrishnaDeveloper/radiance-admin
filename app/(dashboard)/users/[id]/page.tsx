@@ -1,10 +1,22 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { BackendApiError, backendApi } from '@/lib/backend-api'
 import { AUTOPAY_ON_STATUSES, CANCELLABLE_STATUSES, formatDate, formatRupees } from '@/lib/billing'
 import { cancelAutopay, setPremiumOverride, setTestUser } from '@/app/actions/users'
-import { AutopayBadge, SubscriptionBadge } from '@/components/ui'
+import { AutopayBadge, PageHeader, SubscriptionBadge } from '@/components/ui'
 import { ActionForm, SubmitButton } from '@/components/action-form'
+import { AttemptResult } from '@/components/attempt-result'
+import {
+  DURATION_LABELS,
+  FOCUS_LABELS,
+  GOAL_LABELS,
+  LEVEL_LABELS,
+  REFERRAL_LABELS,
+  attemptKind,
+  attemptLabel,
+  attemptTitle,
+  label,
+} from '@/lib/labels'
+import type { AdminUserDetail } from '@/lib/backend-api'
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -27,6 +39,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   }
 
   const sub = user.subscription
+  const learning = user.learning
   const autopayOn = sub ? AUTOPAY_ON_STATUSES.includes(sub.status) : false
   const totalPaidPaise = user.payments.filter((p) => p.status === 'CAPTURED').reduce((n, p) => n + p.amountPaise, 0)
   const freeUsed = Math.min(user.completedStages, user.freeStageLimit)
@@ -39,51 +52,55 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       : `Free — ${freeUsed}/${user.freeStageLimit} free stages used`
 
   return (
-    <div className="max-w-5xl">
-      <Link href="/users" className="text-sm text-slate-500 hover:text-[#7b0f91]">
-        ← Back to users
-      </Link>
-      <h1 className="mt-2 text-2xl font-bold text-slate-900">{user.name ?? 'Unnamed user'}</h1>
-      <p className="mt-1 text-sm text-slate-500">{access}</p>
+    <div className="mx-auto max-w-5xl">
+      <PageHeader title={user.name ?? 'Unnamed user'} subtitle={access} back={{ href: '/users', label: 'Users' }} />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-slate-900">Profile</h2>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="card p-6">
+          <h2 className="text-sm font-semibold text-slate-900">Contact</h2>
           <div className="mt-3">
-            <InfoRow label="User ID" value={<span className="font-mono text-xs">{user.id}</span>} />
-            <InfoRow label="Phone" value={user.phone ?? '—'} />
-            <InfoRow label="Username" value={user.username ?? '—'} />
-            <InfoRow label="Email" value={user.email ?? '—'} />
-            <InfoRow label="State" value={user.state ?? '—'} />
             <InfoRow
-              label="Profile Status"
+              label="Phone"
               value={
-                user.profileCompleted ? (
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                    Completed
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                    Pending
-                  </span>
-                )
+                <>
+                  {user.phone ?? '—'}
+                  {user.phoneVerifiedAt && (
+                    <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Verified</span>
+                  )}
+                </>
               }
             />
-            {user.profile && (
-              <>
-                <InfoRow label="Target Exam" value={user.profile.targetExam} />
-                <InfoRow label="Prep Level" value={user.profile.preparationLevel} />
-                <InfoRow label="Target Attempt" value={user.profile.targetAttempt ?? 'Not decided'} />
-                <InfoRow label="Focus" value={user.profile.preparationFocus} />
-              </>
-            )}
+            <InfoRow label="Email" value={user.email ?? '—'} />
+            <InfoRow label="Username" value={user.username ?? '—'} />
+            <InfoRow label="State" value={user.state ?? '—'} />
+            <InfoRow label="Date of birth" value={formatDate(user.dateOfBirth)} />
             <InfoRow label="Joined" value={formatDate(user.createdAt)} />
-            <InfoRow label="Stages completed" value={user.completedStages} />
-            <InfoRow label="Quiz attempts" value={user.quizAttempts} />
+            <InfoRow label="User ID" value={<span className="font-mono text-xs">{user.id}</span>} />
           </div>
+
+          <div className="mt-6 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-900">Onboarding</h2>
+            {user.profileCompleted ? (
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Completed</span>
+            ) : (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Not finished</span>
+            )}
+          </div>
+          {user.profile ? (
+            <div className="mt-3">
+              <InfoRow label="Heard about us" value={label(REFERRAL_LABELS, user.profile.referralSource)} />
+              <InfoRow label="Preparing for" value={label(DURATION_LABELS, user.profile.preparationDuration)} />
+              <InfoRow label="Level" value={label(LEVEL_LABELS, user.profile.preparationLevel)} />
+              <InfoRow label="Target attempt" value={user.profile.targetAttempt ? attemptLabel(user.profile.targetAttempt) : 'Not answered'} />
+              <InfoRow label="Focus" value={label(FOCUS_LABELS, user.profile.preparationFocus)} />
+              <InfoRow label="Exam" value={user.profile.targetExam.replace('_', ' ')} />
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-slate-400">Hasn’t answered the onboarding questions yet.</p>
+          )}
         </div>
 
-        <div className="card p-5">
+        <div className="card p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Subscription & autopay</h2>
             {sub && <SubscriptionBadge status={sub.status} />}
@@ -130,26 +147,28 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      <div className="mt-6 card">
+      {learning && <LearningSection learning={learning} completedStages={user.completedStages} />}
+
+      <div className="card mt-6">
         <h2 className="px-5 pt-5 text-sm font-semibold text-slate-900">Payment history</h2>
         <table className="mt-3 w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-slate-100 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
             <tr>
-              <th className="px-5 py-2">Date</th>
-              <th className="px-5 py-2 text-right">Amount</th>
-              <th className="px-5 py-2">Status</th>
-              <th className="px-5 py-2">Method</th>
-              <th className="px-5 py-2">Payment ID</th>
+              <th className="px-5 py-3">Date</th>
+              <th className="px-5 py-3 text-right">Amount</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Method</th>
+              <th className="px-5 py-3">Payment ID</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {user.payments.map((p) => (
               <tr key={p.id}>
-                <td className="px-5 py-2 text-slate-600">{formatDate(p.paidAt)}</td>
-                <td className="px-5 py-2 text-right font-medium tabular-nums">{formatRupees(p.amountPaise)}</td>
-                <td className="px-5 py-2 text-xs font-semibold text-slate-600">{p.status}</td>
-                <td className="px-5 py-2 uppercase text-slate-500">{p.method ?? '—'}</td>
-                <td className="px-5 py-2 font-mono text-xs text-slate-400">{p.razorpayPaymentId}</td>
+                <td className="px-5 py-3 text-slate-600">{formatDate(p.paidAt)}</td>
+                <td className="px-5 py-3 text-right font-medium tabular-nums">{formatRupees(p.amountPaise)}</td>
+                <td className="px-5 py-3 text-xs font-semibold text-slate-600">{p.status}</td>
+                <td className="px-5 py-3 uppercase text-slate-500">{p.method ?? '—'}</td>
+                <td className="px-5 py-3 font-mono text-xs text-slate-400">{p.razorpayPaymentId}</td>
               </tr>
             ))}
             {user.payments.length === 0 && (
@@ -202,5 +221,115 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         It does not charge the user or start autopay.
       </p>
     </div>
+  )
+}
+
+type Learning = NonNullable<AdminUserDetail['learning']>
+
+// What the student has done in the app: totals, their daily goals, progress
+// per subject, and their latest tests.
+function LearningSection({ learning, completedStages }: { learning: Learning; completedStages: number }) {
+  const accuracy = learning.questionsAnswered ? Math.round((learning.questionsCorrect / learning.questionsAnswered) * 100) : null
+  const tiles = [
+    { label: 'Questions answered', value: learning.questionsAnswered.toLocaleString('en-IN') },
+    { label: 'Accuracy', value: accuracy === null ? '—' : `${accuracy}%` },
+    { label: 'Stages completed', value: completedStages },
+    { label: 'Daily challenges', value: learning.dailyChallengesCompleted },
+    { label: 'Bookmarks', value: learning.bookmarks },
+    { label: 'Streak freezes', value: `${learning.streakFreezesAvailable} left`, hint: `${learning.streakFreezesUsed} used` },
+  ]
+
+  return (
+    <section className="mt-6">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Learning</h2>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        {tiles.map((t) => (
+          <div key={t.label} className="card p-4">
+            <p className="text-xs font-medium text-slate-500">{t.label}</p>
+            <p className="mt-2 text-xl font-bold tabular-nums text-slate-900">{t.value}</p>
+            {t.hint && <p className="text-xs text-slate-400">{t.hint}</p>}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="card p-6">
+          <h3 className="text-sm font-semibold text-slate-900">Daily study plan</h3>
+          {learning.goals.length ? (
+            <ul className="mt-3 divide-y divide-slate-100">
+              {learning.goals.map((g) => (
+                <li key={g.type} className="flex justify-between gap-4 py-2 text-sm">
+                  <span className="text-slate-500">{label(GOAL_LABELS, g.type)}</span>
+                  <span className="font-semibold tabular-nums text-slate-900">{g.target} / day</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-slate-400">No study plan set.</p>
+          )}
+        </div>
+
+        <div className="card p-6">
+          <h3 className="text-sm font-semibold text-slate-900">Progress by subject</h3>
+          {learning.subjects.length ? (
+            <ul className="mt-3 space-y-3">
+              {learning.subjects.map((s) => (
+                <li key={s.subject}>
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="font-medium text-slate-900">{s.subject}</span>
+                    <span className="shrink-0 text-xs tabular-nums text-slate-500">
+                      {s.completed}/{s.started} stages · {Math.round(s.accuracy)}% · {s.stars}★
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100" aria-hidden>
+                    <div
+                      className="h-full rounded-full bg-[#7b0f91] dark:bg-[#c77dd8]"
+                      style={{ width: `${Math.max(Math.round(s.accuracy), 2)}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-slate-400">Hasn’t started any stages yet.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="card mt-4">
+        <div className="flex items-center justify-between px-5 pt-5">
+          <h3 className="text-sm font-semibold text-slate-900">Recent tests</h3>
+        </div>
+        <table className="mt-3 w-full text-sm">
+          <thead className="border-b border-slate-100 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            <tr>
+              <th className="px-5 py-3">Test</th>
+              <th className="px-5 py-3">Type</th>
+              <th className="px-5 py-3">Result</th>
+              <th className="px-5 py-3">Started</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {learning.recentAttempts.map((a) => (
+              <tr key={a.id}>
+                <td className="px-5 py-3 text-slate-700">{attemptTitle(a)}</td>
+                <td className="px-5 py-3 text-slate-500">{attemptKind(a)}</td>
+                <td className="px-5 py-3">
+                  <AttemptResult attempt={a} />
+                </td>
+                <td className="px-5 py-3 whitespace-nowrap text-slate-500">{formatDate(a.startedAt)}</td>
+              </tr>
+            ))}
+            {learning.recentAttempts.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-5 py-6 text-center text-slate-400">
+                  No tests taken yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
   )
 }

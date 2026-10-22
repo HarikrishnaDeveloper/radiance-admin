@@ -10,7 +10,7 @@ import { Icon } from '@/components/icons'
 
 export function NewCategoryForm() {
   return (
-    <ActionForm action={createCategory} errorTitle="Couldn’t add the category" className="card mt-6 p-5">
+    <ActionForm action={createCategory} errorTitle="Couldn’t add the category" className="card p-6">
       <h2 className="text-sm font-semibold text-slate-900">Add category</h2>
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <label className="field-label min-w-48 flex-1">
@@ -31,7 +31,7 @@ export function NewCategoryForm() {
 
 export function NewPaperForm() {
   return (
-    <ActionForm action={createPaper} errorTitle="Couldn’t add the paper" className="card mt-6 p-5">
+    <ActionForm action={createPaper} errorTitle="Couldn’t add the paper" className="card p-6">
       <h2 className="text-sm font-semibold text-slate-900">Add question paper</h2>
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <label className="field-label w-28">

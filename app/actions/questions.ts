@@ -105,3 +105,23 @@ export async function addDraftQuestion(paperId: number): Promise<ActionResult> {
     redirect(`/questions/${paperId}?q=${draft.questionNo}`)
   })
 }
+
+// Deletes a draft question, then opens `goToQ` (a neighbouring question).
+export async function deleteDraftQuestion(
+  paperId: number,
+  draftId: number,
+  questionNo: number,
+  goToQ: number | null
+): Promise<ActionResult> {
+  await verifyAdminSession()
+
+  return runAction(async () => {
+    await backendApi.deleteDraft(draftId)
+    revalidatePath(`/questions/${paperId}`)
+    revalidatePath('/questions')
+    return {
+      message: `Q${questionNo} was removed. Promote the paper to take it out of the app too.`,
+      redirectTo: goToQ ? `/questions/${paperId}?q=${goToQ}` : `/questions/${paperId}`,
+    }
+  })
+}

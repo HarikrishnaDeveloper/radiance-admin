@@ -15,6 +15,14 @@ const PATHS = {
   refresh: 'M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6',
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z',
   plus: 'M12 5v14M5 12h14',
+  'arrow-up-right': 'M7 17 17 7M8 7h9v9',
+  wallet: 'M3 7a2 2 0 0 1 2-2h13v4M3 7v10a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2zm13 6h.01',
+  lock: 'M6 11h12v10H6V11zm2 0V7a4 4 0 1 1 8 0v4',
+  activity: 'M22 12h-4l-3 9L9 3l-3 9H2',
+  sidebar: 'M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm5 0v16',
+  pie: 'M21 12A9 9 0 1 1 12 3v9h9zM15 3.5A9 9 0 0 1 20.5 9H15V3.5z',
+  clipboard: 'M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1zM8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2M9 13l2 2 4-4',
+  trash: 'M3 6h18M8 6V4h8v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14M10 11v6M14 11v6',
   spinner: 'M12 3a9 9 0 1 0 9 9',
 } as const
 

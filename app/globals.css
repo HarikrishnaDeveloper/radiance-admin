@@ -3,6 +3,10 @@
 /* dark: follows the theme toggle (.dark on <html>), not the OS setting. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* collapsed: the sidebar is in icon-only mode (data-sidebar on <html>, set by
+   components/sidebar-toggle.tsx and read server-side from a cookie). */
+@custom-variant collapsed (&:where([data-sidebar=collapsed], [data-sidebar=collapsed] *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -133,10 +137,10 @@ body {
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-sm {
-    @apply px-3 py-1.5 text-xs;
+    @apply px-3.5 py-1.5 text-xs;
   }
   .btn-primary {
     @apply shadow-sm hover:brightness-110;
@@ -155,10 +159,10 @@ body {
     color: #fff;
   }
   .card {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+    @apply rounded-3xl border border-slate-200/70 bg-white shadow-sm;
   }
   .field {
-    @apply mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition focus:outline-none focus:ring-2;
+    @apply mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition focus:outline-none focus:ring-2;
     --tw-ring-color: color-mix(in oklab, var(--brand) 35%, transparent);
   }
   .field:focus {

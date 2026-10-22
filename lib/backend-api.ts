@@ -109,6 +109,52 @@ export type UserProfileSummary = {
   preparationLevel: string
   targetAttempt: string | null
   preparationFocus: string
+  referralSource?: string | null
+  preparationDuration?: string | null
+}
+
+export type AdminAttempt = {
+  id: number
+  mode: 'FULL_PAPER' | 'CATEGORY_PRACTICE'
+  testMode: 'EXAM' | 'PRACTICE'
+  paper: { year: number; name: string } | null
+  section: string | null
+  totalQuestions: number
+  correctCount: number
+  wrongCount: number
+  skippedCount?: number
+  score: number | null
+  maxScore: number | null
+  startedAt: string
+  completedAt: string | null
+}
+
+export type AdminAttemptList = {
+  attempts: (AdminAttempt & { user: { id: string; name: string | null; phone: string | null; username: string | null; isTestUser: boolean } })[]
+  total: number
+  page: number
+  pageSize: number
+  counts: { all: number; exam: number; paper: number; category: number; unfinished: number }
+}
+
+export type InsightRow = { value: string | null; count: number }
+
+export type AdminInsights = {
+  totalUsers: number
+  profileCompleted: number
+  phoneVerified: number
+  onboarding: Record<
+    'referralSource' | 'preparationDuration' | 'preparationLevel' | 'targetAttempt' | 'preparationFocus' | 'state',
+    InsightRow[]
+  >
+  studyPlan: { usersWithGoals: number; goals: { type: string; users: number; averageTarget: number }[] }
+  engagement: {
+    questionsAnswered: number
+    bookmarks: number
+    dailyChallengesCompleted: number
+    streakFreezesUsed: number
+    testsCompleted: { mode: string; testMode: string; count: number }[]
+  }
 }
 
 export type AdminUserListItem = {
@@ -144,6 +190,19 @@ export type AdminUserDetail = Omit<AdminUserListItem, 'subscription'> & {
   freeStageLimit: number
   profileCompleted?: boolean
   profile?: UserProfileSummary | null
+  dateOfBirth?: string | null
+  phoneVerifiedAt?: string | null
+  learning?: {
+    questionsAnswered: number
+    questionsCorrect: number
+    bookmarks: number
+    dailyChallengesCompleted: number
+    streakFreezesAvailable: number
+    streakFreezesUsed: number
+    goals: { type: string; target: number }[]
+    subjects: { subject: string; started: number; completed: number; stars: number; accuracy: number }[]
+    recentAttempts: AdminAttempt[]
+  }
   subscription: {
     id: string
     status: string
@@ -271,6 +330,11 @@ export const backendApi = {
 
   user: (id: string) => request<AdminUserDetail>(`/api/admin/users/${id}`),
 
+  insights: () => request<AdminInsights>('/api/admin/insights'),
+
+  attempts: (params: { q?: string; page?: number; filter?: string }) =>
+    request<AdminAttemptList>('/api/admin/attempts?' + toQuery(params)),
+
   updateUser: (id: string, data: { isTestUser?: boolean; isPremium?: boolean }) =>
     request(`/api/admin/users/${id}`, { method: 'PATCH', body: data }),
 
@@ -294,6 +358,8 @@ export const backendApi = {
 
   updateDraft: (draftId: number, data: Partial<AdminDraftQuestion>) =>
     request(`/api/admin/drafts/${draftId}`, { method: 'PATCH', body: data }),
+
+  deleteDraft: (draftId: number) => request(`/api/admin/drafts/${draftId}`, { method: 'DELETE' }),
 
   uploadImage: async (file: File): Promise<{ url: string }> => {
     const form = new FormData()

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { BackendApiError, backendApi, type AdminDraftQuestion } from '@/lib/backend-api'
-import { addDraftQuestion, promotePaper, updateDraftQuestion } from '@/app/actions/questions'
+import { addDraftQuestion, deleteDraftQuestion, promotePaper, updateDraftQuestion } from '@/app/actions/questions'
 import { ActionForm, SubmitButton } from '@/components/action-form'
 import { Icon } from '@/components/icons'
 import { ImageField } from '@/components/image-field'
@@ -13,6 +13,7 @@ import { GuardedLink, UnsavedChangesGuard } from '@/components/unsaved-changes'
 
 const LABELS = ['A', 'B', 'C', 'D'] as const
 const EDITOR_FORM_ID = 'draft-editor'
+const DELETE_FORM_ID = 'draft-delete'
 
 // What stops a draft going live: promotePaper (radiance-backend) skips it.
 function blockingIssues(d: AdminDraftQuestion): string[] {
@@ -70,14 +71,17 @@ export default async function PaperReviewPage({
 
   return (
     <div>
-      <Link href="/questions" className="text-sm text-slate-500 hover:text-[#7b0f91]">
-        ← All papers
+      <Link
+        href="/questions"
+        className="mb-3 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900"
+      >
+        ← Questions
       </Link>
 
       {/* Header */}
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
             <span>
               <strong className="font-semibold text-slate-900">{approvedCount}</strong> of {drafts.length} approved
@@ -254,13 +258,22 @@ export default async function PaperReviewPage({
             </div>
 
             {/* Action bar: stays on screen while scrolling a long question. */}
-            <div className="sticky bottom-0 flex flex-wrap items-center gap-2 rounded-b-2xl border-t border-slate-200 bg-white/95 px-6 py-3 backdrop-blur">
+            <div className="sticky bottom-0 flex flex-wrap items-center gap-2 rounded-b-3xl border-t border-slate-200 bg-white/95 px-6 py-3 backdrop-blur">
               <NavButton href={prev && `?q=${prev.questionNo}`} label="Previous question">
                 ‹ Prev
               </NavButton>
               <NavButton href={next && `?q=${next.questionNo}`} label="Next question">
                 Next ›
               </NavButton>
+              {/* Submits the separate delete form below (forms can't nest). */}
+              <button
+                type="submit"
+                form={DELETE_FORM_ID}
+                title="Delete this question"
+                className="btn btn-sm border border-red-200 text-red-600 hover:bg-red-50"
+              >
+                <Icon name="trash" /> Delete
+              </button>
               <div className="ml-auto flex items-center gap-2">
                 <SubmitButton name="intent" value="save" pendingLabel="Saving…" className="btn btn-secondary">
                   Save
@@ -277,6 +290,23 @@ export default async function PaperReviewPage({
             </div>
 
             <UnsavedChangesGuard />
+          </ActionForm>
+
+          <ActionForm
+            id={DELETE_FORM_ID}
+            action={deleteDraftQuestion.bind(null, paperId, draft.id, draft.questionNo, (next ?? prev)?.questionNo ?? null)}
+            successTitle={`Q${draft.questionNo} deleted`}
+            errorTitle={`Couldn’t delete Q${draft.questionNo}`}
+            confirm={{
+              title: `Delete question ${draft.questionNo}?`,
+              message:
+                'This removes the question and its options, explanation and images from this paper. It can’t be undone. If it’s already live, the next promote takes it out of the app.',
+              confirmLabel: 'Delete question',
+              tone: 'danger',
+            }}
+            className="hidden"
+          >
+            {null}
           </ActionForm>
 
           <aside className="min-w-0 lg:col-start-2 xl:col-start-auto xl:sticky xl:top-6">
@@ -307,11 +337,11 @@ function StatusSwitch({ status }: { status: string }) {
     { value: 'APPROVED', label: 'Approved', on: 'has-checked:text-emerald-700', dot: 'bg-emerald-500' },
   ]
   return (
-    <div role="radiogroup" aria-label="Review status" className="inline-flex rounded-lg bg-slate-100 p-1 text-xs font-semibold">
+    <div role="radiogroup" aria-label="Review status" className="inline-flex rounded-full bg-slate-100 p-1 text-xs font-semibold">
       {options.map((o) => (
         <label
           key={o.value}
-          className={`flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-slate-500 transition has-checked:bg-white has-checked:shadow-sm has-focus-visible:ring-2 has-focus-visible:ring-[#7b0f91]/40 ${o.on}`}
+          className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-slate-500 transition has-checked:bg-white has-checked:shadow-sm has-focus-visible:ring-2 has-focus-visible:ring-[#7b0f91]/40 ${o.on}`}
         >
           <input type="radio" name="status" value={o.value} defaultChecked={status === o.value} className="sr-only" />
           <span className={`h-2 w-2 rounded-full ${o.dot}`} aria-hidden />

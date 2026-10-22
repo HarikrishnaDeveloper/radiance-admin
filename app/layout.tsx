@@ -32,11 +32,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Set by components/theme-toggle.tsx; rendered server-side so there is no light flash.
-  const dark = (await cookies()).get("theme")?.value === "dark";
+  const cookieStore = await cookies();
+  const dark = cookieStore.get("theme")?.value === "dark";
+  // Set by components/sidebar-toggle.tsx, for the same reason.
+  const sidebar = cookieStore.get("sidebar")?.value === "collapsed" ? "collapsed" : "expanded";
 
   return (
     <html
       lang="en"
+      data-sidebar={sidebar}
       className={`${geistSans.variable} ${geistMono.variable} ${roboto.variable} h-full antialiased${dark ? " dark" : ""}`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
